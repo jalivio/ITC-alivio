@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard - Awesome TVL-ICT Dashboard</title>
+  <link rel="icon" type="image/png" href="/imgfile/hello.png">
+  <style>
+    :root { --accent: #0f0; --accent-rgb: 0,255,0; }
+
+    body {
+      margin: 0;
+      font-family: 'Courier New', Courier, monospace; /* Changed to monospace for Matrix feel */
+      height: 100vh;
+      overflow: hidden;
+      background-color: black;
+      color: white;
+    }
+
+    #matrix-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .dashboard-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      gap: 20px;
+      position: relative; 
+      z-index: 1;
+    }
+
+    .glass-panel {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+      border-radius: 10px;
+    }
+
+    .header {
+      padding: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    
+    .header h1 {
+      margin: 0;
+      letter-spacing: 4px;
+      font-weight: lighter;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px #0f0; 
+      color: #fff;
+    }
+
+    .main-body {
+      display: flex;
+      flex: 1;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 280px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .content-area {
+      flex: 1;
+      padding: 0; /* Removed padding to allow iframes to fit full size */
+      position: relative;
+      overflow: hidden; /* Hide overflow for iframes */
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Scrollable content container inside content-area */
+    .content-scroll {
+        padding: 40px;
+        overflow-y: auto;
+        height: 100%;
+    }
+
+    .nav-btn {
+      padding: 15px;
+      text-align: left;
+      background: rgba(0, 255, 0, 0.05);
+      border: 1px solid rgba(0, 255, 0, 0.1);
+      color: #ddd;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .nav-btn:hover, .nav-btn.active {
+      background: rgba(0, 255, 0, 0.2); 
+      border-color: #0f0;
+      color: #fff;
+      padding-left: 20px;
+      text-shadow: 0 0 5px #0f0;
+    }
+
+    .logout-btn {
+      margin-top: auto;
+      background: rgba(255, 50, 50, 0.1);
+      border: 1px solid rgba(255, 50, 50, 0.3);
+      text-align: center;
+      font-weight: bold;
+      color: #ffaaaa;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255, 50, 50, 0.3);
+      padding-left: 15px;
+      color: white;
+      text-shadow: 0 0 5px red;
+    }
+
+    /* Styles for content */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+
+    .profile-pic {
+      width: 80px;
+      height: 80px;
+      background: black;
+      border: 2px solid #0f0;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #0f0;
+      font-weight: bold;
+      font-size: 2rem;
+      box-shadow: 0 0 15px #0f0;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .info-item {
+      background: rgba(0, 20, 0, 0.5);
+      padding: 15px;
+      border-radius: 5px;
+      border-left: 3px solid #0f0;
+    }
+
+    .info-label {
+      font-size: 0.8rem;
+      color: #0f0;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .info-value {
+      font-size: 1.1rem;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    /* Schedule Styles */
+    .schedule-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .day-card {
+      background: rgba(0, 20, 0, 0.5);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      border-radius: 10px;
+      padding: 20px;
+      transition: transform 0.2s;
+    }
+    
+    .day-card:hover {
+        background: rgba(0, 40, 0, 0.6);
+        border-color: #0f0;
+        box-shadow: 0 0 10px rgba(0,255,0,0.2);
+        transform: translateY(-2px);
+    }
+
+    .day-title {
+      color: #0f0;
+      font-size: 1.2rem;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .schedule-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+      padding-bottom: 5px;
+    }
+
+    .time {
+      white-space: nowrap;
+      padding-right: 12px;
+      color: #888;
+      font-size: 0.85rem;
+    }
+
+    .subject {
+      font-weight: bold;
+      color: white;
+      text-align: right;
+    }
+
+    .room {
+      display: block;
+      font-weight: normal;
+      font-size: 0.75rem;
+      color: #0f0;
+      opacity: 0.8;
+    }
+
+    .break-time {
+      color: #0f0;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    /* Iframe Containers */
+    .iframe-full {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: white; /* Most external sites need white bg */
+    }
+
+    h2 {
+        color: #fff;
+        border-bottom: 1px solid #0f0;
+        padding-bottom: 10px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <canvas id="matrix-bg"></canvas>
+
+  <div class="dashboard-container">
+    
+    <header class="header glass-panel">
+      <h1>Awesome TVL-ICT Dashboard</h1>
+    </header>
+
+    <div class="main-body">
+      
+      <aside class="sidebar glass-panel">
+        <button class="nav-btn" onclick="loadPersonal()">Personal Information</button>
+        <button class="nav-btn" onclick="loadSchedule()">Class Schedule</button>
+        <button class="nav-btn" onclick="loadProgramming()">Online Programming</button>
+        <button class="nav-btn" onclick="loadRobotics()">Robotics Simulator</button>
+        <button class="nav-btn" onclick="loadFB()">Facebook Page</button>
+        <button class="nav-btn" onclick="loadAssignments()">Assignments</button>
+        <button class="nav-btn" onclick="loadActivity()">My Activity</button>
+        
+        <button class="nav-btn logout-btn" onclick="logout()">Log Out</button>
+      </aside>
+
+      <main id="main-content" class="content-area glass-panel">
+        <div class="content-scroll">
+            <h2>Welcome, Admin</h2>
+            <p>Select an option from the sidebar to view details.</p>
+        </div>
+      </main>
+      
+    </div>
+  </div>
+
+  <script src="assignments.js"></script>
+  <script>
+    function logout() {
+      window.location.href = "login.html"; 
+    }
+
+    function loadPersonal() {
+      const content = document.getElementById("main-content");
+      content.innerHTML = `
+        <div class="content-scroll">
+            <div class="profile-header">
+            <div class="profile-pic">J</div>
+            <div>
+                <h2 style="margin:0; border:none;">John Mikel D. Alivio</h2>
+                <p style="margin:5px 0 0 0; color:#ccc;">Computer Science Student</p>
+            </div>
+            </div>
+
+            <h3>Student Details</h3>
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Student ID</div>
+                <div class="info-value">2202601578287</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Section</div>
+                <div class="info-value">CS 1-A</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value" style="font-size: 0.9rem;">jalivio@addu.edu.ph</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Contact No.</div>
+                <div class="info-value">0994 445 9677</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Specialization</div>
+                <div class="info-value">Computer Science</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value" style="color:#0f0;">Enrolled</div>
+            </div>
+            </div>
+        </div>
+      `;
+    }
+
+    function loadSchedule() {
+      const content = document.getElementById("main-content");
+      content.innerHTML = `
+        <div class="content-scroll">
+            <h2 style="margin-bottom: 20px;">Class Schedule <span style="font-size:0.6em; color:#888;">BS Comp Sci 1-A &middot; 1st Sem</span></h2>
+            <div class="schedule-container">
+            <div class="day-card">
+                <div class="day-title">Monday</div>
+                <div class="schedule-row"><span class="time">7:30 - 9:00</span> <span class="subject">Introduction to Computing<small class="room">CS 1130 | F610</small></span></div>
+                <div class="schedule-row"><span class="time">9:00 - 10:30</span> <span class="subject">Fundamentals of Programming<small class="room">CS 1131 | F610</small></span></div>
+                <div class="schedule-row"><span class="time">12:00 - 1:30</span> <span class="subject">Essentials in Catholic Theology<small class="room">GE 1100 | F306</small></span></div>
+                <div class="schedule-row"><span class="time">1:30 - 3:00</span> <span class="subject">Introduction to Philosophical Methods<small class="room">GE 1101 | F312</small></span></div>
+            </div>
+            <div class="day-card">
+                <div class="day-title">Tuesday</div>
+                <div class="schedule-row"><span class="time">10:30 - 12:30</span> <span class="subject">First Year Social Formation 1<small class="room">ASF 1101 | D200</small></span></div>
+            </div>
+            <div class="day-card">
+                <div class="day-title">Wednesday</div>
+                <div class="schedule-row"><span class="time">7:30 - 9:00</span> <span class="subject">Introduction to Computing<small class="room">CS 1130 | F610</small></span></div>
+                <div class="schedule-row"><span class="time">9:00 - 10:30</span> <span class="subject">Fundamentals of Programming<small class="room">CS 1131 | F610</small></span></div>
+                <div class="schedule-row"><span class="time">12:00 - 1:30</span> <span class="subject">Essentials in Catholic Theology<small class="room">GE 1100 | F306</small></span></div>
+                <div class="schedule-row"><span class="time">1:30 - 3:00</span> <span class="subject">Introduction to Philosophical Methods<small class="room">GE 1101 | F312</small></span></div>
+            </div>
+            <div class="day-card">
+                <div class="day-title">Thursday</div>
+                <div class="schedule-row"><span class="time">10:30 - 12:30</span> <span class="subject">PathFit 1<small class="room">PE 1114 | M600A</small></span></div>
+            </div>
+            <div class="day-card">
+                <div class="day-title">Friday</div>
+                <div class="schedule-row"><span class="time">7:30 - 9:30</span> <span class="subject">Fundamentals of Programming<small class="room">CS 1131 | F610</small></span></div>
+                <div class="schedule-row"><span class="time">9:30 - 11:30</span> <span class="subject">Introduction to Computing<small class="room">CS 1130 | F610</small></span></div>
+            </div>
+            <div class="day-card">
+                <div class="day-title">Saturday</div>
+                <div class="schedule-row"><span class="time">8:30 - 11:30</span> <span class="subject">National Service Training Program – Civic Welfare Training Service 1<small class="room">NSTP 1 | F505</small></span></div>
+            </div>
+            </div>
+        </div>
+      `;
+    }
+
+    function loadProgramming() {
+      const content = document.getElementById("main-content");
+      content.innerHTML = `
+        <iframe 
+            src="https://onecompiler.com/" 
+            class="iframe-full"
+            style="filter: invert(0.9) hue-rotate(180deg);" 
+            sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
+        ></iframe>
+        `;
+    }
+
+    function loadRobotics() {
+        const content = document.getElementById("main-content");
+        content.innerHTML = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+                <div style="padding: 10px; background: #000; border-bottom: 1px solid #0f0;">
+                    <span style="color:#0f0;">>> LOAD:</span> Arduino Uno Simulator (Wokwi)
+                </div>
+                <iframe 
+                    src="https://wokwi.com/projects/new/arduino-uno?dark=1" 
+                    class="iframe-full"
+                    style="border:none;"
+                ></iframe>
+            </div>
+        `;
+    }
+
+    function loadFB() {
+      const content = document.getElementById("main-content");
+
+      content.innerHTML = `
+        <div class="content-scroll">
+            <h2 style="border-bottom: 1px solid #0f0; padding-bottom: 10px; margin-bottom: 30px;">
+                TARGET IDENTIFIED: FACEBOOK
+            </h2>
+
+            <div style="
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                border: 1px solid #0f0; 
+                background: rgba(0, 20, 0, 0.6); 
+                padding: 40px; 
+                max-width: 500px; 
+                margin: 0 auto; 
+                position: relative;
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            ">
+                <div style="position: absolute; top: -1px; left: -1px; width: 20px; height: 20px; border-top: 2px solid #0f0; border-left: 2px solid #0f0;"></div>
+                <div style="position: absolute; top: -1px; right: -1px; width: 20px; height: 20px; border-top: 2px solid #0f0; border-right: 2px solid #0f0;"></div>
+                <div style="position: absolute; bottom: -1px; left: -1px; width: 20px; height: 20px; border-bottom: 2px solid #0f0; border-left: 2px solid #0f0;"></div>
+                <div style="position: absolute; bottom: -1px; right: -1px; width: 20px; height: 20px; border-bottom: 2px solid #0f0; border-right: 2px solid #0f0;"></div>
+
+                <div style="
+                    width: 120px; 
+                    height: 120px; 
+                    border-radius: 50%; 
+                    border: 2px solid #0f0; 
+                    background: #000; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    margin-bottom: 20px;
+                    box-shadow: 0 0 15px #0f0;
+                ">
+                    <span style="font-size: 3rem; color: #0f0;">JM</span>
+                </div>
+
+                <h2 style="color: white; margin: 0; text-transform: uppercase; letter-spacing: 2px; border: none;">
+                    John Mikel Alivio
+                </h2>
+                <p style="color: #0f0; font-size: 0.8rem; margin-top: 5px;">STATUS: CANNOT ACCESS // PERSONAL PROFILE</p>
+
+                <div style="width: 100%; height: 1px; background: #0f0; margin: 20px 0; opacity: 0.5;"></div>
+
+                <div style="width: 100%; text-align: left; font-size: 0.9rem; color: #ccc; font-family: monospace;">
+                    <p>> CONNECTION: <span style="color:#0f0">SECURE</span></p>
+                    <p>> ENCRYPTION: <span style="color:#0f0">ENABLED</span></p>
+                    <p>> UPLINK STATUS: <span style="color:red">BLOCKED BY HOST</span></p>
+                    <br>
+                    <p style="color: #888;">// NOTE: Target is a Personal Profile. Direct iframe embedding is prohibited by Facebook Privacy Protocols.</p>
+                </div>
+
+                <button onclick="window.open('https://web.facebook.com/arikaloveslain', '_blank')" 
+                    style="
+                        margin-top: 30px; 
+                        padding: 15px 30px; 
+                        background: transparent; 
+                        color: #0f0; 
+                        border: 1px solid #0f0; 
+                        font-family: monospace; 
+                        font-weight: bold; 
+                        cursor: pointer; 
+                        text-transform: uppercase; 
+                        transition: 0.3s;
+                    "
+                    onmouseover="this.style.background='#0f0'; this.style.color='#000'"
+                    onmouseout="this.style.background='transparent'; this.style.color='#0f0'"
+                >
+                    [ EXECUTE EXTERNAL LINK ]
+                </button>
+            </div>
+        </div>
+      `;
+    }
+
+    const canvas = document.getElementById('matrix-bg');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+    const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const nums = '0123456789';
+    const alphabet = katakana + latin + nums;
+
+    const fontSize = 16;
+    const columns = canvas.width / fontSize; 
+
+    const rainDrops = [];
+
+    for (let x = 0; x < columns; x++) {
+      rainDrops[x] = 1;
+    }
+
+    const draw = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#0F0';
+      ctx.font = fontSize + 'px monospace';
+
+      for (let i = 0; i < rainDrops.length; i++) {
+        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          rainDrops[i] = 0;
+        }
+        rainDrops[i]++;
+      }
+    };
+
+    setInterval(draw, 30);
+
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+
+    let schoolTasks = JSON.parse(localStorage.getItem('schoolTasks')) || ["Finish Research Project", "Get ready for Prom"];
+    let personalTasks = JSON.parse(localStorage.getItem('personalTasks')) || ["Work out and stuff", "Rank up in Valorant", "Grind for Zibai (Genshin Impact)"];
+
+    function loadActivity() {
+      const content = document.getElementById("main-content");
+      
+      content.innerHTML = `
+        <div class="content-scroll">
+            <h2 style="border-bottom: 1px solid #0f0; padding-bottom: 10px; margin-bottom: 20px;">
+                ACTIVITY LOGS (PERSISTENT STORAGE)
+            </h2>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 80%;">
+                
+                <div style="border: 1px solid #0f0; background: rgba(0, 20, 0, 0.4); border-radius: 5px; display: flex; flex-direction: column;">
+                    <div style="background: rgba(0, 255, 0, 0.1); padding: 15px; border-bottom: 1px solid #0f0; font-weight: bold; letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>ACADEMIC_PROTOCOLS</span>
+                        <span id="school-count" style="font-size:0.8rem; opacity:0.7;">[0]</span>
+                    </div>
+                    
+                    <div id="school-list" style="flex: 1; overflow-y: auto; padding: 15px;">
+                        </div>
+
+                    <button onclick="addTask('school')" style="width: 100%; padding: 15px; background: transparent; border: none; border-top: 1px solid #0f0; color: #0f0; cursor: pointer; font-family: monospace; font-weight: bold; text-transform: uppercase; transition: 0.2s;" onmouseover="this.style.background='rgba(0,255,0,0.2)'" onmouseout="this.style.background='transparent'">
+                        [+] CREATE NEW TASK
+                    </button>
+                </div>
+
+                <div style="border: 1px solid #0f0; background: rgba(0, 20, 0, 0.4); border-radius: 5px; display: flex; flex-direction: column;">
+                    <div style="background: rgba(0, 255, 0, 0.1); padding: 15px; border-bottom: 1px solid #0f0; font-weight: bold; letter-spacing: 2px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>PERSONAL_LOGS</span>
+                        <span id="personal-count" style="font-size:0.8rem; opacity:0.7;">[0]</span>
+                    </div>
+                    
+                    <div id="personal-list" style="flex: 1; overflow-y: auto; padding: 15px;">
+                        </div>
+
+                    <button onclick="addTask('personal')" style="width: 100%; padding: 15px; background: transparent; border: none; border-top: 1px solid #0f0; color: #0f0; cursor: pointer; font-family: monospace; font-weight: bold; text-transform: uppercase; transition: 0.2s;" onmouseover="this.style.background='rgba(0,255,0,0.2)'" onmouseout="this.style.background='transparent'">
+                        [+] CREATE NEW TASK
+                    </button>
+                </div>
+
+            </div>
+        </div>
+      `;
+      
+      renderTasks();
+    }
+
+    function addTask(type) {
+        const newTask = prompt(`:: ENTER NEW ${type.toUpperCase()} DIRECTIVE ::`);
+        
+        if (newTask) {
+            if (type === 'school') {
+                schoolTasks.push(newTask);
+
+                localStorage.setItem('schoolTasks', JSON.stringify(schoolTasks));
+            } else {
+                personalTasks.push(newTask);
+
+                localStorage.setItem('personalTasks', JSON.stringify(personalTasks));
+            }
+            renderTasks();
+        }
+    }
+
+    function removeTask(type, index) {
+        if (confirm(":: CONFIRM DELETION OF DATA? ::")) {
+            if (type === 'school') {
+                schoolTasks.splice(index, 1);
+  
+                localStorage.setItem('schoolTasks', JSON.stringify(schoolTasks));
+            } else {
+                personalTasks.splice(index, 1);
+
+                localStorage.setItem('personalTasks', JSON.stringify(personalTasks));
+            }
+            renderTasks();
+        }
+    }
+
+    function renderTasks() {
+        const schoolList = document.getElementById('school-list');
+        const personalList = document.getElementById('personal-list');
+        
+
+        document.getElementById('school-count').innerText = `[${schoolTasks.length}]`;
+        document.getElementById('personal-count').innerText = `[${personalTasks.length}]`;
+
+        let schoolHTML = '';
+        schoolTasks.forEach((task, index) => {
+            schoolHTML += `
+                <div style="margin-bottom: 10px; padding: 10px; background: rgba(0,255,0,0.05); border-left: 2px solid #0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #ddd;">> ${task}</span>
+                    <button onclick="removeTask('school', ${index})" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">X</button>
+                </div>
+            `;
+        });
+        schoolList.innerHTML = schoolHTML;
+
+        let personalHTML = '';
+        personalTasks.forEach((task, index) => {
+            personalHTML += `
+                <div style="margin-bottom: 10px; padding: 10px; background: rgba(0,255,0,0.05); border-left: 2px solid #0f0; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #ddd;">> ${task}</span>
+                    <button onclick="removeTask('personal', ${index})" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">X</button>
+                </div>
+            `;
+        });
+        personalList.innerHTML = personalHTML;
+    }
+  </script>
+
+</body>
+</html>
